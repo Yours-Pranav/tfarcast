@@ -389,11 +389,11 @@
                 }
                 
                 if (connectBtn) {
-                    connectBtn.onclick = () => {
+                    connectBtn.onclick = async () => {
                         if (userAddress) {
-                            disconnectWallet();
+                            await disconnectWallet();
                         } else {
-                            connectWallet();
+                            await connectWallet();
                         }
                     };
                     safeLog('Connect/Disconnect button connected');
