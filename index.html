@@ -287,7 +287,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@web3-onboard/coinbase@2.2.1/dist/index.umd.js"></script>
     
     <!-- Ethers.js library for Web3 interactions -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
     <script>
         let game = null;
@@ -613,18 +613,15 @@
             connectBtn.textContent = 'Connecting...';
 
             try {
-                const injected = Web3OnboardInjectedWallets.default();
-                const coinbase = Web3OnboardCoinbase.default();
+                // We're filtering the injected wallets to avoid conflicts
+                const injected = Web3OnboardInjectedWallets.default({
+                    filter: ({ label }) => ['MetaMask', 'Coinbase Wallet'].includes(label)
+                });
+                const walletConnect = Web3OnboardWalletConnect.default({ projectId: 'd724e0e230d091e3c77ca0852fe04cee' });
                 
-                // 🔑 PASTE YOUR WALLETCONNECT PROJECT ID HERE 🔑
-                const projectId = 'd724e0e230d091e3c77ca0852fe04cee'; 
-                const wallets = projectId && projectId !== 'YOUR_WALLETCONNECT_PROJECT_ID'
-                    ? [injected, coinbase, Web3OnboardWalletConnect.default({ projectId })]
-                    : [injected, coinbase];
-
                 if (!onboard) {
                     onboard = Web3Onboard.init({
-                        wallets: wallets,
+                        wallets: [injected, walletConnect],
                         chains: [{
                             id: '0xa4b1', 
                             token: 'ETH',
