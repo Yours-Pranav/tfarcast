@@ -276,7 +276,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@web3-onboard/injected-wallets@2.10.4/dist/index.umd.js"></script>
     
     <!-- Ethers.js library for Web3 interactions -->
-    <!-- Changed CDN from cdn.ethers.io to cdnjs.cloudflare.com for better reliability -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 
     <script>
@@ -603,6 +602,17 @@
             connectBtn.textContent = 'Connecting...';
 
             try {
+                // Check for multiple provider conflicts
+                if (window.ethereum && window.ethereum.isMetaMask && window.ethereum.isRabby || window.ethereum && window.ethereum.isMetaMask && window.ethereum.isTally) {
+                    const errorMsg = 'Multiple wallet extensions detected. Please disable one and try again.';
+                    safeLog('❌ ' + errorMsg);
+                    document.getElementById('walletInfo').textContent = errorMsg;
+                    connectBtn.textContent = '🔗 Connect Wallet';
+                    connectBtn.disabled = false;
+                    game.showNotification(errorMsg, 'error');
+                    return;
+                }
+
                 const injected = Web3OnboardInjectedWallets.default();
                 
                 // 🔑 PASTE YOUR WALLETCONNECT PROJECT ID HERE 🔑
