@@ -215,6 +215,16 @@
             color: white;
         }
 
+        /* Web3-Onboard Modal Styling */
+        .onboard-container {
+            font-family: 'Space Grotesk', sans-serif !important;
+        }
+        .onboard-modal {
+            background: #1a1a2e !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 24px !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+        }
 
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
@@ -274,6 +284,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@web3-onboard/core@2.21.3/dist/index.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@web3-onboard/walletconnect@2.6.2/dist/index.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@web3-onboard/injected-wallets@2.10.4/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@web3-onboard/coinbase@2.2.1/dist/index.umd.js"></script>
     
     <!-- Ethers.js library for Web3 interactions -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
@@ -442,7 +453,7 @@
 
                 this.balls.push(ball);
                 this.updateStats();
-                safeLog(`Ball dropped! Probabilistic Prize: $${determinedPrize.toFixed(2)}`);
+                safeLog(`Ball dropped! Probabilistic Prize: $${determinedPrized.toFixed(2)}`);
             }
 
             getFreeTickets() {
@@ -602,24 +613,14 @@
             connectBtn.textContent = 'Connecting...';
 
             try {
-                // Check for multiple provider conflicts
-                if (window.ethereum && window.ethereum.isMetaMask && window.ethereum.isRabby || window.ethereum && window.ethereum.isMetaMask && window.ethereum.isTally) {
-                    const errorMsg = 'Multiple wallet extensions detected. Please disable one and try again.';
-                    safeLog('❌ ' + errorMsg);
-                    document.getElementById('walletInfo').textContent = errorMsg;
-                    connectBtn.textContent = '🔗 Connect Wallet';
-                    connectBtn.disabled = false;
-                    game.showNotification(errorMsg, 'error');
-                    return;
-                }
-
                 const injected = Web3OnboardInjectedWallets.default();
+                const coinbase = Web3OnboardCoinbase.default();
                 
                 // 🔑 PASTE YOUR WALLETCONNECT PROJECT ID HERE 🔑
                 const projectId = 'd724e0e230d091e3c77ca0852fe04cee'; 
                 const wallets = projectId && projectId !== 'YOUR_WALLETCONNECT_PROJECT_ID'
-                    ? [injected, Web3OnboardWalletConnect.default({ projectId })]
-                    : [injected];
+                    ? [injected, coinbase, Web3OnboardWalletConnect.default({ projectId })]
+                    : [injected, coinbase];
 
                 if (!onboard) {
                     onboard = Web3Onboard.init({
@@ -636,6 +637,15 @@
                         accountCenter: {
                             desktop: { enabled: false },
                             mobile: { enabled: false }
+                        },
+                        // Custom branding for the modal
+                        theme: {
+                            '--w3o-background-color': '#0f0f23',
+                            '--w3o-foreground-color': '#1a1a2e',
+                            '--w3o-text-color': '#ffffff',
+                            '--w3o-border-color': 'rgba(255, 255, 255, 0.1)',
+                            '--w3o-border-radius': '16px',
+                            '--w3o-font-family': 'Space Grotesk, sans-serif'
                         }
                     });
                 }
