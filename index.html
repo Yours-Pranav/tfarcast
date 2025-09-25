@@ -210,6 +210,12 @@
             color: white;
         }
 
+        .notification.error {
+            background: linear-gradient(135deg, rgba(255, 96, 96, 0.9), rgba(255, 48, 48, 0.9));
+            color: white;
+        }
+
+
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -279,6 +285,7 @@
         let onboard;
         let provider;
         let userAddress = null;
+        let connectedWallet = null;
 
         function safeLog(message) {
             console.log(message);
@@ -382,10 +389,16 @@
                 }
                 
                 if (connectBtn) {
-                    connectBtn.onclick = () => connectWallet();
-                    safeLog('Connect wallet button connected');
+                    connectBtn.onclick = () => {
+                        if (userAddress) {
+                            disconnectWallet();
+                        } else {
+                            connectWallet();
+                        }
+                    };
+                    safeLog('Connect/Disconnect button connected');
                 } else {
-                    safeLog('❌ Connect wallet button not found');
+                    safeLog('❌ Connect/Disconnect button not found');
                 }
             }
 
@@ -584,49 +597,52 @@
 
         // --- WEB3 CONNECTION LOGIC ---
         async function connectWallet() {
+            const connectBtn = document.getElementById('connectWalletBtn');
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'Connecting...';
+
             try {
                 const injected = Web3OnboardInjectedWallets.default();
                 
-                // Add WalletConnect support only if a projectId is available.
-                // This prevents the app from failing if the projectId is not set.
-                const projectId = 'YOUR_WALLETCONNECT_PROJECT_ID'; // Replace with your Project ID
+                const projectId = 'YOUR_WALLETCONNECT_PROJECT_ID'; 
                 const wallets = projectId && projectId !== 'YOUR_WALLETCONNECT_PROJECT_ID'
                     ? [injected, Web3OnboardWalletConnect.default({ projectId })]
                     : [injected];
 
-                onboard = Web3Onboard.init({
-                    wallets: wallets,
-                    chains: [{
-                        id: '0xa4b1', // Arbitrum One Chain ID
-                        token: 'ETH',
-                        label: 'Arbitrum One',
-                        rpcUrl: 'https://arb1.arbitrum.io/rpc'
-                    }],
-                    connect: {
-                        showSidebar: true,
-                    },
-                    accountCenter: {
-                        desktop: { enabled: false },
-                        mobile: { enabled: false }
-                    }
-                });
+                if (!onboard) {
+                    onboard = Web3Onboard.init({
+                        wallets: wallets,
+                        chains: [{
+                            id: '0xa4b1', 
+                            token: 'ETH',
+                            label: 'Arbitrum One',
+                            rpcUrl: 'https://arb1.arbitrum.io/rpc'
+                        }],
+                        connect: {
+                            showSidebar: true,
+                        },
+                        accountCenter: {
+                            desktop: { enabled: false },
+                            mobile: { enabled: false }
+                        }
+                    });
+                }
                 
                 const connectedWallets = await onboard.connectWallet();
                 
                 if (connectedWallets && connectedWallets.length > 0) {
-                    const primaryWallet = connectedWallets[0];
-                    const provider = new ethers.providers.Web3Provider(primaryWallet.provider);
+                    connectedWallet = connectedWallets[0];
+                    provider = new ethers.providers.Web3Provider(connectedWallet.provider);
                     const signer = provider.getSigner();
                     userAddress = await signer.getAddress();
                     
                     safeLog('Wallet connected:', userAddress);
                     
                     const walletInfoDiv = document.getElementById('walletInfo');
-                    const connectBtn = document.getElementById('connectWalletBtn');
                     
                     walletInfoDiv.textContent = `Connected as: ${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-                    connectBtn.textContent = 'Wallet Connected';
-                    connectBtn.disabled = true;
+                    connectBtn.textContent = 'Disconnect';
+                    connectBtn.disabled = false;
 
                     const dropBtn = document.getElementById('dropBallBtn');
                     if (dropBtn) {
@@ -634,16 +650,39 @@
                     }
                     game.showNotification('Wallet connected! ✅', 'info');
                 } else {
-                    throw new Error("No wallet connected.");
+                    // User closed the modal or rejected the connection
+                    safeLog('Connection cancelled or failed.');
+                    connectBtn.textContent = '🔗 Connect Wallet';
+                    connectBtn.disabled = false;
+                    game.showNotification('Connection cancelled.', 'info');
                 }
 
             } catch (error) {
                 safeLog('❌ Error connecting wallet:', error);
                 document.getElementById('walletInfo').textContent = 'Connection failed. Check console for details.';
-                game.showNotification('Wallet connection failed.', 'info');
+                connectBtn.textContent = '🔗 Connect Wallet';
+                connectBtn.disabled = false;
+                game.showNotification('Wallet connection failed.', 'error');
             }
         }
         
+        async function disconnectWallet() {
+            if (connectedWallet) {
+                await onboard.disconnectWallet({ label: connectedWallet.label });
+                userAddress = null;
+                connectedWallet = null;
+                document.getElementById('walletInfo').textContent = 'Wallet not connected.';
+                const connectBtn = document.getElementById('connectWalletBtn');
+                connectBtn.textContent = '🔗 Connect Wallet';
+                connectBtn.disabled = false;
+                const dropBtn = document.getElementById('dropBallBtn');
+                if (dropBtn) {
+                    dropBtn.disabled = true;
+                }
+                game.showNotification('Wallet disconnected.', 'info');
+            }
+        }
+
         // --- USDC PAYOUT SIMULATION ---
         async function payoutUSDC(amount, recipientAddress) {
             safeLog(`Attempting to payout $${amount.toFixed(2)} to ${recipientAddress}`);
