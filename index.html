@@ -264,17 +264,20 @@
         </div>
     </div>
 
+    <!-- Web3-Onboard library -->
+    <script src="https://cdn.jsdelivr.net/npm/@web3-onboard/core@2.21.3/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@web3-onboard/walletconnect@2.6.2/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@web3-onboard/injected-wallets@2.10.4/dist/index.umd.js"></script>
+    
     <!-- Ethers.js library for Web3 interactions -->
     <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
-    <!-- WalletConnect provider -->
-    <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/index.umd.js"></script>
-    
+
     <script>
         let game = null;
 
-        // Ethers.js and WalletConnect specific variables
+        // Web3-Onboard variables
+        let onboard;
         let provider;
-        let signer;
         let userAddress = null;
 
         function safeLog(message) {
@@ -582,44 +585,57 @@
         // --- WEB3 CONNECTION LOGIC ---
         async function connectWallet() {
             try {
-                // Initialize WalletConnect provider
-                const walletConnectProvider = new WalletConnectProvider.default({
-                    infuraId: "e4414f52e50543ff8d2334f553f1a070", // A valid Infura or Alchemy ID is required
-                    qrcodeModalOptions: {
-                        mobileLinks: [
-                            "rainbow",
-                            "metamask",
-                            "argent",
-                            "trust",
-                            "imtoken",
-                            "pillar",
-                        ]
+                const wallets = [
+                    new Web3OnboardWalletConnect.default({
+                      projectId: 'YOUR_WALLETCONNECT_PROJECT_ID',
+                      requiredChains: [42161], // Arbitrum One
+                    }),
+                    new Web3OnboardInjectedWallets.default()
+                ];
+                
+                onboard = Web3Onboard.init({
+                    wallets: wallets,
+                    chains: [{
+                        id: '0xa4b1', // Arbitrum One Chain ID
+                        token: 'ETH',
+                        label: 'Arbitrum One',
+                        rpcUrl: 'https://arb1.arbitrum.io/rpc'
+                    }],
+                    connect: {
+                        showSidebar: true,
+                        autoConnectLastWallet: true
                     }
                 });
+                
+                const connectedWallets = await onboard.connectWallet();
+                
+                if (connectedWallets && connectedWallets.length > 0) {
+                    const primaryWallet = connectedWallets[0];
+                    provider = new ethers.providers.Web3Provider(primaryWallet.provider);
+                    const signer = provider.getSigner();
+                    userAddress = await signer.getAddress();
+                    
+                    safeLog('Wallet connected:', userAddress);
+                    
+                    const walletInfoDiv = document.getElementById('walletInfo');
+                    const connectBtn = document.getElementById('connectWalletBtn');
+                    
+                    walletInfoDiv.textContent = `Connected as: ${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+                    connectBtn.textContent = 'Wallet Connected';
+                    connectBtn.disabled = true;
 
-                await walletConnectProvider.enable();
-                
-                provider = new ethers.providers.Web3Provider(walletConnectProvider);
-                signer = provider.getSigner();
-                userAddress = await signer.getAddress();
-                
-                safeLog('Wallet connected:', userAddress);
-                
-                const network = await provider.getNetwork();
-                safeLog('Connected to network:', network.name);
-                
-                const walletInfoDiv = document.getElementById('walletInfo');
-                walletInfoDiv.textContent = `Connected as: ${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
-                
-                const dropBtn = document.getElementById('dropBallBtn');
-                if (dropBtn) {
-                    dropBtn.disabled = false;
+                    const dropBtn = document.getElementById('dropBallBtn');
+                    if (dropBtn) {
+                        dropBtn.disabled = false;
+                    }
+                    game.showNotification('Wallet connected! ✅', 'info');
+                } else {
+                    throw new Error("No wallet connected.");
                 }
-                game.showNotification('Wallet connected! ✅', 'info');
-                
+
             } catch (error) {
                 safeLog('❌ Error connecting wallet:', error);
-                document.getElementById('walletInfo').textContent = 'Connection failed.';
+                document.getElementById('walletInfo').textContent = 'Connection failed. Check console for details.';
                 game.showNotification('Wallet connection failed.', 'info');
             }
         }
@@ -638,7 +654,7 @@
             try {
                 // The USDC contract address on Arbitrum
                 const usdcContractAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBD256CBA";
-                const usdcContract = new ethers.Contract(usdcContractAddress, USDC_ABI, signer);
+                const usdcContract = new ethers.Contract(usdcContractAddress, USDC_ABI, provider.getSigner());
                 
                 // Convert the prize amount to the correct decimal format (USDC has 6 decimals)
                 const amountInWei = ethers.utils.parseUnits(amount.toFixed(2), 6);
