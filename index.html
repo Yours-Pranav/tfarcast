@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plinko Mini-App</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: radial-gradient(ellipse at top, #0f0f23 0%, #0a0a12 50%, #000000 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ff6b9d, #c471ed, #12c2e9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.7;
+            color: #a0a0ff;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(18, 18, 39, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px 12px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #12c2e9, #c471ed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #8b8bb8;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .game-board {
+            background: linear-gradient(145deg, rgba(18, 18, 39, 0.9), rgba(30, 30, 60, 0.7));
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
+        }
+
+        #gameCanvas {
+            width: 380px; 
+            height: 480px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: block;
+        }
+
+        .prize-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 2px;
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            width: 380px;
+        }
+
+        .prize-slot {
+            padding: 8px 4px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+
+        /* Prize Colors */
+        .prize-01 { background: linear-gradient(135deg, #667eea, #764ba2); } 
+        .prize-05 { background: linear-gradient(135deg, #f093fb, #f5576c); } 
+        .prize-25 { background: linear-gradient(135deg, #4facfe, #00f2fe); } 
+        .prize-1 { background: linear-gradient(135deg, #fa709a, #fee140); transform: scale(1.05); } 
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 16px 24px;
+            border: none;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b9d, #c471ed);
+            color: white;
+            box-shadow: 0 8px 25px rgba(196, 113, 237, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #12c2e9, #c471ed);
+            color: white;
+            box-shadow: 0 8px 25px rgba(18, 194, 233, 0.3);
+        }
+        
+        .btn-tertiary {
+            background: rgba(18, 18, 39, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #8b8bb8;
+        }
+        
+        .btn-tertiary:hover {
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        
+        #walletInfo {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #a0a0ff;
+            margin-bottom: 20px;
+            word-wrap: break-word;
+            opacity: 0.8;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-weight: 600;
+            z-index: 1000;
+            backdrop-filter: blur(20px);
+            animation: slideIn 0.4s ease;
+        }
+
+        .notification.win {
+            background: linear-gradient(135deg, rgba(67, 233, 123, 0.9), rgba(56, 249, 215, 0.9));
+            color: white;
+        }
+
+        .notification.info {
+            background: linear-gradient(135deg, rgba(18, 194, 233, 0.9), rgba(196, 113, 237, 0.9));
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1 class="title">PLINKO</h1>
+            <p class="subtitle">Drop balls • Win USDC • Pure luck ✨</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="ticketCount">5</div>
+                <div class="stat-label">Tickets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalWinnings">$0.00</div>
+                <div class="stat-label">Total Winnings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="ballsDropped">0</div>
+                <div class="stat-label">Drops</div>
+            </div>
+        </div>
+        
+        <div id="walletInfo">Wallet not connected.</div>
+
+        <div class="game-board">
+            <canvas id="gameCanvas"></canvas>
+            
+            <div class="prize-grid">
+                <div class="prize-slot prize-01">$0.01</div>
+                <div class="prize-slot prize-01">$0.01</div>
+                <div class="prize-slot prize-05">$0.05</div>
+                <div class="prize-slot prize-25">$0.25</div>
+                <div class="prize-slot prize-1">$1.00</div>
+                <div class="prize-slot prize-25">$0.25</div>
+                <div class="prize-slot prize-05">$0.05</div>
+                <div class="prize-slot prize-01">$0.01</div>
+                <div class="prize-slot prize-01">$0.01</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-tertiary" id="connectWalletBtn">🔗 Connect Wallet</button>
+            <button class="btn btn-primary" id="dropBallBtn" disabled>🎯 DROP BALL</button>
+            <button class="btn btn-secondary" id="getFreeTicketsBtn">🎟️ GET FREE TICKETS</button>
+        </div>
+    </div>
+
+    <!-- Ethers.js library for Web3 interactions -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <!-- WalletConnect provider -->
+    <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/index.umd.js"></script>
+    
+    <script>
+        let game = null;
+
+        // Ethers.js and WalletConnect specific variables
+        let provider;
+        let signer;
+        let userAddress = null;
+
+        function safeLog(message) {
+            console.log(message);
+        }
+
+        // IMPORTANT: In a real app, this ABI would come from the USDC contract
+        const USDC_ABI = [
+            "function transfer(address to, uint256 amount) returns (bool)",
+            "function balanceOf(address account) view returns (uint256)"
+        ];
+
+        class PlinkoGame {
+            constructor() {
+                safeLog('Initializing Plinko Game...');
+                
+                this.canvas = document.getElementById('gameCanvas');
+                this.width = 380; 
+                this.height = 480;
+
+                if (!this.canvas) {
+                    safeLog('❌ Canvas not found!');
+                    return;
+                }
+                
+                this.ctx = this.canvas.getContext('2d');
+                if (!this.ctx) {
+                    safeLog('❌ Canvas context failed!');
+                    return;
+                }
+                
+                this.tickets = 5;
+                this.totalWinnings = 0;
+                this.ballsDropped = 0;
+                this.balls = [];
+                this.pegs = [];
+                
+                // Probabilistic prize mapping
+                this.PRIZE_MAP = [
+                    { max: 0.988800, prize: 0.01, text: '$0.01' },
+                    { max: 0.998800, prize: 0.05, text: '$0.05' },
+                    { max: 0.999800, prize: 0.25, text: '$0.25' },
+                    { max: 1.000000, prize: 1.00, text: '$1.00' }
+                ];
+                
+                this.isRunning = false;
+                
+                this.setupCanvas();
+                this.createPegs();
+                this.setupEvents();
+                this.updateStats();
+                this.start();
+                
+                safeLog('Game initialized successfully!');
+            }
+
+            setupCanvas() {
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+                safeLog('Canvas setup complete');
+            }
+
+            createPegs() {
+                this.pegs = [];
+                const rows = 8;
+                const spacing = 35;
+                
+                for (let row = 0; row < rows; row++) {
+                    const pegsInRow = 3 + row;
+                    const rowWidth = (pegsInRow - 1) * spacing;
+                    const startX = (this.width - rowWidth) / 2;
+                    const offsetX = (row % 2) * (spacing / 2);
+                    
+                    for (let col = 0; col < pegsInRow; col++) {
+                        this.pegs.push({
+                            x: startX + col * spacing + offsetX,
+                            y: 60 + row * 45,
+                            radius: 5
+                        });
+                    }
+                }
+                safeLog(`Created ${this.pegs.length} pegs`);
+            }
+
+            setupEvents() {
+                const dropBtn = document.getElementById('dropBallBtn');
+                const ticketBtn = document.getElementById('getFreeTicketsBtn');
+                const connectBtn = document.getElementById('connectWalletBtn');
+                
+                if (dropBtn) {
+                    dropBtn.onclick = () => this.dropBall();
+                    safeLog('Drop button connected');
+                } else {
+                    safeLog('❌ Drop button not found');
+                }
+                
+                if (ticketBtn) {
+                    ticketBtn.onclick = () => this.getFreeTickets();
+                    safeLog('Ticket button connected');
+                } else {
+                    safeLog('❌ Ticket button not found');
+                }
+                
+                if (connectBtn) {
+                    connectBtn.onclick = () => connectWallet();
+                    safeLog('Connect wallet button connected');
+                } else {
+                    safeLog('❌ Connect wallet button not found');
+                }
+            }
+
+            getProbabilisticPrize() {
+                const randomVal = Math.random();
+                
+                for (const tier of this.PRIZE_MAP) {
+                    if (randomVal < tier.max) {
+                        return tier.prize;
+                    }
+                }
+                return 0.01; 
+            }
+
+            dropBall() {
+                if (this.tickets <= 0) {
+                    this.showNotification('No tickets! Get free ones! 🎟️', 'info');
+                    return;
+                }
+
+                if (!userAddress) {
+                    this.showNotification('Please connect your wallet first!', 'info');
+                    return;
+                }
+
+                this.tickets--;
+                this.ballsDropped++;
+
+                const determinedPrize = this.getProbabilisticPrize();
+                
+                const ball = {
+                    x: this.width / 2 + (Math.random() - 0.5) * 60,
+                    y: 10,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: 0,
+                    radius: 8,
+                    color: '#ff6b9d',
+                    trail: [],
+                    prize: determinedPrize
+                };
+
+                this.balls.push(ball);
+                this.updateStats();
+                safeLog(`Ball dropped! Probabilistic Prize: $${determinedPrize.toFixed(2)}`);
+            }
+
+            getFreeTickets() {
+                this.tickets += 3;
+                this.updateStats();
+                this.showNotification('Got 3 free tickets! 🎟️', 'info');
+                safeLog(`Added tickets, total: ${this.tickets}`);
+            }
+
+            updateBalls() {
+                for (let i = this.balls.length - 1; i >= 0; i--) {
+                    const ball = this.balls[i];
+                    
+                    ball.trail.push({x: ball.x, y: ball.y});
+                    if (ball.trail.length > 6) ball.trail.shift();
+                    
+                    ball.vy += 0.3; // gravity
+                    ball.x += ball.vx;
+                    ball.y += ball.vy;
+                    ball.vx *= 0.99;
+                    
+                    // Peg collisions logic... 
+                    for (const peg of this.pegs) {
+                        const dx = ball.x - peg.x;
+                        const dy = ball.y - peg.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < ball.radius + peg.radius) {
+                            const angle = Math.atan2(dy, dx);
+                            ball.x = peg.x + Math.cos(angle) * (peg.radius + ball.radius);
+                            ball.y = peg.y + Math.sin(angle) * (peg.radius + ball.radius);
+                            
+                            const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy) * 0.7;
+                            ball.vx = Math.cos(angle) * speed;
+                            ball.vy = Math.sin(angle) * speed;
+                            ball.vx += (Math.random() - 0.5) * 2;
+                        }
+                    }
+                    
+                    // Wall bounce logic... 
+                    if (ball.x < ball.radius || ball.x > this.width - ball.radius) {
+                        ball.vx *= -0.8;
+                        ball.x = Math.max(ball.radius, Math.min(this.width - ball.radius, ball.x));
+                    }
+                    
+                    // Bottom collision: This triggers the prize payout
+                    if (ball.y > this.height - 40) {
+                        const prize = ball.prize; 
+                        
+                        // Call the simulated payout function here
+                        if (userAddress && prize > 0) {
+                            payoutUSDC(prize, userAddress);
+                        } else {
+                           this.totalWinnings += prize;
+                           this.showNotification(`Won $${prize.toFixed(2)}! 💰`, 'win');
+                        }
+
+                        this.balls.splice(i, 1);
+                        this.updateStats(); 
+                    }
+                }
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                
+                const grad = this.ctx.createLinearGradient(0, 0, 0, this.height);
+                grad.addColorStop(0, '#1a1a2e');
+                grad.addColorStop(1, '#0f1419');
+                this.ctx.fillStyle = grad;
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                this.ctx.fillStyle = '#ffffff';
+                this.pegs.forEach(peg => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(peg.x, peg.y, peg.radius, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+                
+                this.balls.forEach(ball => {
+                    this.ctx.strokeStyle = ball.color + '80';
+                    this.ctx.lineWidth = ball.radius;
+                    this.ctx.lineCap = 'round';
+                    for (let i = 0; i < ball.trail.length - 1; i++) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(ball.trail[i].x, ball.trail[i].y);
+                        this.ctx.lineTo(ball.trail[i + 1].x, ball.trail[i + 1].y);
+                        this.ctx.stroke();
+                    }
+                    
+                    this.ctx.fillStyle = ball.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+                
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, this.height - 40);
+                this.ctx.lineTo(this.width, this.height - 40);
+                this.ctx.stroke();
+                
+                const numSlots = 9;
+                for (let i = 1; i < numSlots; i++) {
+                    const x = (i / numSlots) * this.width;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, this.height - 40);
+                    this.ctx.lineTo(x, this.height);
+                    this.ctx.stroke();
+                }
+            }
+
+            start() {
+                if (this.isRunning) return;
+                this.isRunning = true;
+                this.gameLoop();
+                safeLog('Game loop started');
+            }
+
+            gameLoop() {
+                if (!this.isRunning) return;
+                
+                this.updateBalls();
+                this.draw();
+                
+                requestAnimationFrame(() => this.gameLoop());
+            }
+
+            updateStats() {
+                document.getElementById('ticketCount').textContent = this.tickets;
+                document.getElementById('totalWinnings').textContent = '$' + this.totalWinnings.toFixed(2);
+                document.getElementById('ballsDropped').textContent = this.ballsDropped;
+                
+                const dropBtn = document.getElementById('dropBallBtn');
+                if (dropBtn) dropBtn.disabled = this.tickets <= 0 || !userAddress;
+            }
+
+            showNotification(message, type) {
+                const notif = document.createElement('div');
+                notif.className = `notification ${type}`;
+                notif.textContent = message;
+                document.body.appendChild(notif);
+                
+                setTimeout(() => {
+                    if (notif.parentNode) {
+                        document.body.removeChild(notif);
+                    }
+                }, 3000);
+            }
+        }
+
+        // --- WEB3 CONNECTION LOGIC ---
+        async function connectWallet() {
+            try {
+                // Initialize WalletConnect provider
+                const walletConnectProvider = new WalletConnectProvider.default({
+                    infuraId: "e4414f52e50543ff8d2334f553f1a070", // A valid Infura or Alchemy ID is required
+                    qrcodeModalOptions: {
+                        mobileLinks: [
+                            "rainbow",
+                            "metamask",
+                            "argent",
+                            "trust",
+                            "imtoken",
+                            "pillar",
+                        ]
+                    }
+                });
+
+                await walletConnectProvider.enable();
+                
+                provider = new ethers.providers.Web3Provider(walletConnectProvider);
+                signer = provider.getSigner();
+                userAddress = await signer.getAddress();
+                
+                safeLog('Wallet connected:', userAddress);
+                
+                const network = await provider.getNetwork();
+                safeLog('Connected to network:', network.name);
+                
+                const walletInfoDiv = document.getElementById('walletInfo');
+                walletInfoDiv.textContent = `Connected as: ${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+                
+                const dropBtn = document.getElementById('dropBallBtn');
+                if (dropBtn) {
+                    dropBtn.disabled = false;
+                }
+                game.showNotification('Wallet connected! ✅', 'info');
+                
+            } catch (error) {
+                safeLog('❌ Error connecting wallet:', error);
+                document.getElementById('walletInfo').textContent = 'Connection failed.';
+                game.showNotification('Wallet connection failed.', 'info');
+            }
+        }
+        
+        // --- USDC PAYOUT SIMULATION ---
+        async function payoutUSDC(amount, recipientAddress) {
+            safeLog(`Attempting to payout $${amount.toFixed(2)} to ${recipientAddress}`);
+            
+            // IMPORTANT: This is a SIMULATED transaction for safety.
+            // In a real application, you would need a secure backend service to
+            // handle this transaction with a private key. Never expose private keys
+            // on the frontend.
+            
+            // This is the real code structure for a USDC transaction on Arbitrum
+            /*
+            try {
+                // The USDC contract address on Arbitrum
+                const usdcContractAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBD256CBA";
+                const usdcContract = new ethers.Contract(usdcContractAddress, USDC_ABI, signer);
+                
+                // Convert the prize amount to the correct decimal format (USDC has 6 decimals)
+                const amountInWei = ethers.utils.parseUnits(amount.toFixed(2), 6);
+                
+                const tx = await usdcContract.transfer(recipientAddress, amountInWei);
+                safeLog('Transaction sent:', tx.hash);
+                
+                // Wait for the transaction to be mined
+                await tx.wait();
+                safeLog('Transaction confirmed!');
+                
+                game.showNotification(`$${amount.toFixed(2)} sent to your wallet! 🎉`, 'win');
+                
+            } catch (error) {
+                safeLog('❌ Transaction failed:', error);
+                game.showNotification('Transaction failed. Try again.', 'info');
+            }
+            */
+           
+            // Simulated Success
+            safeLog('✅ SIMULATION SUCCESS: A payout would have been sent.');
+            game.showNotification(`$${amount.toFixed(2)} would have been sent to your wallet! 🎉`, 'win');
+            game.totalWinnings += amount;
+            game.updateStats();
+        }
+
+        window.addEventListener('load', function() {
+            safeLog('Page loaded, starting game...');
+            setTimeout(() => {
+                try {
+                    game = new PlinkoGame();
+                    safeLog('Game created successfully');
+                } catch (error) {
+                    safeLog('❌ Error creating game: ' + error.message);
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>
