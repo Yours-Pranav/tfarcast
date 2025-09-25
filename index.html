@@ -18,7 +18,7 @@
             background: radial-gradient(ellipse at top, #0f0f23 0%, #0a0a12 50%, #000000 100%);
             color: #ffffff;
             overflow-x: hidden;
-            min-height: 100vh;
+            min-height: 10vh;
             padding: 20px;
         }
 
@@ -613,11 +613,14 @@
             connectBtn.textContent = 'Connecting...';
 
             try {
-                // We're filtering the injected wallets to avoid conflicts
-                const injected = Web3OnboardInjectedWallets.default({
-                    filter: ({ label }) => ['MetaMask', 'Coinbase Wallet'].includes(label)
+                // Initialize Web3-Onboard with both injected wallets and WalletConnect
+                const injected = Web3OnboardInjectedWallets.default();
+                
+                // IMPORTANT: You must get a Project ID from cloud.walletconnect.com and paste it here.
+                // The placeholder 'YOUR_WALLETCONNECT_PROJECT_ID_HERE' will not work.
+                const walletConnect = Web3OnboardWalletConnect.default({ 
+                    projectId: 'YOUR_WALLETCONNECT_PROJECT_ID_HERE' 
                 });
-                const walletConnect = Web3OnboardWalletConnect.default({ projectId: 'd724e0e230d091e3c77ca0852fe04cee' });
                 
                 if (!onboard) {
                     onboard = Web3Onboard.init({
@@ -647,6 +650,8 @@
                     });
                 }
                 
+                // Connect the wallet. The onboard.connectWallet() method handles
+                // the UI for the user to select their wallet.
                 const connectedWallets = await onboard.connectWallet();
                 
                 if (connectedWallets && connectedWallets.length > 0) {
