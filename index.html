@@ -586,13 +586,16 @@
         async function connectWallet() {
             try {
                 const wallets = [
-                    new Web3OnboardWalletConnect.default({
-                      projectId: 'YOUR_WALLETCONNECT_PROJECT_ID',
-                      requiredChains: [42161], // Arbitrum One
-                    }),
-                    new Web3OnboardInjectedWallets.default()
+                    Web3OnboardInjectedWallets.default()
                 ];
                 
+                // Add WalletConnect support only if a projectId is available.
+                // This prevents the app from failing if the projectId is not set.
+                const projectId = 'YOUR_WALLETCONNECT_PROJECT_ID'; // Replace with your Project ID
+                if (projectId && projectId !== 'YOUR_WALLETCONNECT_PROJECT_ID') {
+                    wallets.push(Web3OnboardWalletConnect.default({ projectId }));
+                }
+
                 onboard = Web3Onboard.init({
                     wallets: wallets,
                     chains: [{
@@ -603,7 +606,10 @@
                     }],
                     connect: {
                         showSidebar: true,
-                        autoConnectLastWallet: true
+                    },
+                    accountCenter: {
+                        desktop: { enabled: false },
+                        mobile: { enabled: false }
                     }
                 });
                 
@@ -611,7 +617,7 @@
                 
                 if (connectedWallets && connectedWallets.length > 0) {
                     const primaryWallet = connectedWallets[0];
-                    provider = new ethers.providers.Web3Provider(primaryWallet.provider);
+                    const provider = new ethers.providers.Web3Provider(primaryWallet.provider);
                     const signer = provider.getSigner();
                     userAddress = await signer.getAddress();
                     
