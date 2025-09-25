@@ -604,6 +604,7 @@
             try {
                 const injected = Web3OnboardInjectedWallets.default();
                 
+                // 🔑 PASTE YOUR WALLETCONNECT PROJECT ID HERE 🔑
                 const projectId = 'YOUR_WALLETCONNECT_PROJECT_ID'; 
                 const wallets = projectId && projectId !== 'YOUR_WALLETCONNECT_PROJECT_ID'
                     ? [injected, Web3OnboardWalletConnect.default({ projectId })]
