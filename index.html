@@ -270,7 +270,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@web3-onboard/injected-wallets@2.10.4/dist/index.umd.js"></script>
     
     <!-- Ethers.js library for Web3 interactions -->
-    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.0.umd.min.js"></script>
 
     <script>
         let game = null;
@@ -585,16 +585,14 @@
         // --- WEB3 CONNECTION LOGIC ---
         async function connectWallet() {
             try {
-                const wallets = [
-                    Web3OnboardInjectedWallets.default()
-                ];
+                const injected = Web3OnboardInjectedWallets.default();
                 
                 // Add WalletConnect support only if a projectId is available.
                 // This prevents the app from failing if the projectId is not set.
                 const projectId = 'YOUR_WALLETCONNECT_PROJECT_ID'; // Replace with your Project ID
-                if (projectId && projectId !== 'YOUR_WALLETCONNECT_PROJECT_ID') {
-                    wallets.push(Web3OnboardWalletConnect.default({ projectId }));
-                }
+                const wallets = projectId && projectId !== 'YOUR_WALLETCONNECT_PROJECT_ID'
+                    ? [injected, Web3OnboardWalletConnect.default({ projectId })]
+                    : [injected];
 
                 onboard = Web3Onboard.init({
                     wallets: wallets,
